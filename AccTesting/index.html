@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login and Signup Form</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container right-panel-active" id="container">
+      <iframe
+        id="loader"
+        class="loading"
+        src="loadingAnim.html"
+        frameborder="0"
+      ></iframe>
+      <div class="form-container sign-up-container">
+        <form action="#">
+          <h1>Create Account</h1>
+          <input type="email" placeholder="Email" id="register-email" />
+          <input
+            type="password"
+            placeholder="Password"
+            id="register-password"
+          />
+          <div id="error-signup" class="error-text"></div>
+          <button type="button" id="register-btn">Sign Up</button>
+        </form>
+      </div>
+      <div class="form-container sign-in-container">
+        <form action="#">
+          <h1>Sign in</h1>
+          <input type="email" placeholder="Email" id="login-email" />
+          <input type="password" placeholder="Password" id="login-password" />
+          <a class="btn" id="reset-btn">Forgot your password?</a>
+          <div id="error-login" class="error-text"></div>
+          <button type="button" id="login-btn">Sign In</button>
+        </form>
+      </div>
+      <div class="overlay-container">
+        <div class="overlay">
+          <div class="overlay-panel overlay-left">
+            <h1>Welcome Back!</h1>
+            <p>
+              To keep connected with us please login with your personal info
+            </p>
+            <button class="ghost" id="signIn">Sign In</button>
+          </div>
+          <div class="overlay-panel overlay-right">
+            <h1>Hello, Friend!</h1>
+            <p>Enter your personal details and start journey with us</p>
+            <button class="ghost" id="signUp">Sign Up</button>
+          </div>
+        </div>
+      </div>
+      <div class="forgotenpsw" id="forgotenpsw">
+        <div class="popup-content">
+          <span class="close-btn" id="close-btn">&times;</span>
+          <h2>Recover your account</h2>
+          <input
+            type="email"
+            placeholder="Enter your email"
+            id="recovery-email"
+          />
+          <div id="error-reset" class="error-text"></div>
+          <button type="button" id="reset-psw-btn">Send Email</button>
+        </div>
+      </div>
+      <div class="email-sent-container" id="email-sent-container">
+        <div class="email-sent-content">
+          <ion-icon class="email-icon" name="send-outline"></ion-icon>
+          <h2>Check your Email!</h2>
+          <p>
+            We have sent an email to <span id="email-address"></span>. To
+            <span id="action"></span> your account please follow the steps in
+            the email we have sent. If the email does not appear please check
+            your spam.<span id="extraContent"></span>
+          </p>
+          <p>
+            Once you have completed the steps in the email please refresh this
+            page.
+          </p>
+          <button type="button" id="refresh-btn">
+            Refresh
+            <ion-icon class="refresh-icon" name="refresh-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+      <div class="logged-in-container" id="logged-in-container">
+        <div class="logged-in-content">
+          <ion-icon class="logged-in-icon" name="person-outline"></ion-icon>
+          <h2>Welcome!</h2>
+          <p>
+            Hello <span id="logged-in-email-address"></span>, You are currently
+            logged in! Thank you for signing up. We currently have no content to
+            show you as this is just a test, but please check back in the
+            future!
+          </p>
+          <p>NOTE: your account will be carried over when we release.</p>
+          <button type="button" id="log-out-btn">Logout</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="script.js"></script>
+    <script src="https://syrupstudios.github.io/ast.syrupstudios.github.io/API/sypAPI_google.firebase9.15.0.js"></script>
+    <script
+      type="module"
+      src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"
+    ></script>
+    <script
+      nomodule
+      src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"
+    ></script>
+  </body>
+</html>
