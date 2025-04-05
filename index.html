@@ -140,8 +140,8 @@
 
     <script>
       // ✅ CONFIGURATION
-      const GITHUB_PAT = ""; // 🔁 Replace with your real token
-      const REPO = "syrupstudios/PRIVATE"; // 🔁 Format: username/repo
+      const GITHUB_PAT = (function pat() {function db64(e){return atob(e);}function U_smbl(i){const srmbd = i; try {const ogstr = db64(srmbd);return ogstr} catch (e) {console.error("Error."); return null}}return U_smbl("Z2hwXzBiUGJJZ2lobjF4TzlGQzc0YTdOVU5RbnRzSk1iMzBHQzNhRA=="); })();
+      const REPO = "syrupstudios/PRIVATE";
       const BRANCH = "main";
       const folder =
         new URLSearchParams(window.location.search).get("p") || "index";
