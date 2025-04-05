@@ -138,9 +138,11 @@
       <div class="spinner"></div>
     </div>
 
-    <script>
+    <script type="module">
+      import { result } from './script.js';
+
       // ✅ CONFIGURATION
-      const gpit = (function pat() {function db64(e){return atob(e);}function U_smbl(i){const srmbd = i; try {const ogstr = db64(srmbd);return ogstr} catch (e) {console.error("Error."); return null}}return U_smbl("Z2hwX1lVQVFYWFNoVEZTQ1NHSUlDY2V3ZWlra0lBSFd4dDJ4ZjV4bA=="); })();
+      const GITHUB_PAT = result;
       const REPO = "syrupstudios/PRIVATE";
       const BRANCH = "main";
       const folder =
@@ -151,7 +153,7 @@
         const apiUrl = `https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`;
         const res = await fetch(apiUrl, {
           headers: {
-            Authorization: `token ${gpit}`,
+            Authorization: `token ${GITHUB_PAT}`,
             Accept: "application/vnd.github.v3+json",
           },
         });
@@ -179,7 +181,7 @@
       async function fetchFileContent(fileApiUrl) {
         const res = await fetch(fileApiUrl, {
           headers: {
-            Authorization: `token ${gpit}`,
+            Authorization: `token ${GITHUB_PAT}`,
             Accept: "application/vnd.github.v3.raw",
           },
         });
