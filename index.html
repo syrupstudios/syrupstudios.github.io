@@ -5,7 +5,8 @@
     <style>
       body {
         margin: 0;
-        background-color: #1b1a1d; /* Optional, for better visibility */
+        background-color: #1b1a1d;
+        /* Optional, for better visibility */
         overflow: hidden;
       }
 
@@ -120,18 +121,22 @@
         0% {
           transform: scaleY(1) rotate(0deg);
         }
+
         49.99% {
           transform: scaleY(1) rotate(135deg);
         }
+
         50% {
           transform: scaleY(-1) rotate(0deg);
         }
+
         100% {
           transform: scaleY(-1) rotate(-135deg);
         }
       }
     </style>
   </head>
+
   <body>
     <div id="app"></div>
     <div class="wrapper">
@@ -139,218 +144,310 @@
     </div>
 
     <script type="module">
-      // ✅ CONFIGURATION
-      const GITHUB_PAT = "1";
-      const REPO = "syrupstudios/PRIVATE";
-      const BRANCH = "main";
-      const folder =
-        new URLSearchParams(window.location.search).get("p") || "index";
+      async function fetchAndDecodeToken(url) {
+        // Function to shift characters by 3 places
+        function shiftBase64(input, shiftBy) {
+          return input
+            .split("")
+            .map((char) => {
+              const charCode = char.charCodeAt(0);
+              // Apply the shift based on the direction (forward or backward)
+              let newCharCode = charCode + shiftBy;
 
-      // ✅ Fetch folder file listing
-      async function fetchGitHubFolder(path) {
-        const apiUrl = `https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`;
-        const res = await fetch(apiUrl, {
-          headers: {
-            Authorization: `token ${GITHUB_PAT}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        });
-
-        if (res.status === 401) {
-          // PAT issue - Unauthorized
-          throw new Error(
-            "Unauthorized: an error occured while accessing the server."
-          );
+              // Ensure that the new character code wraps around within valid base64 characters
+              if (charCode >= 65 && charCode <= 90) {
+                // A-Z
+                newCharCode = ((newCharCode - 65 + 26) % 26) + 65;
+              } else if (charCode >= 97 && charCode <= 122) {
+                // a-z
+                newCharCode = ((newCharCode - 97 + 26) % 26) + 97;
+              } else if (charCode >= 48 && charCode <= 57) {
+                // 0-9
+                newCharCode = ((newCharCode - 48 + 10) % 10) + 48;
+              } else if (charCode === 43 || charCode === 47) {
+                // '+' or '/'
+                newCharCode = ((newCharCode - 43 + 2) % 2) + 43;
+              } else if (charCode === 61) {
+                // '='
+                newCharCode = charCode;
+              }
+              return String.fromCharCode(newCharCode);
+            })
+            .join("");
         }
 
-        if (res.status === 404) {
-          // Folder not found
-          throw new Error("Folder not found: Redirecting to 404 folder.");
+        // Function to extract and decode the token
+        function extractAndDecode(input) {
+          const parts = input.trim().split("!");
+
+          // Check if the structure is as expected
+          if (parts.length < 3 || !parts[1]) {
+            console.error(
+              "Unexpected token format. Expected format: prefix!base64!suffix"
+            );
+            return null;
+          }
+
+          // The base64 part is the second element in the array
+          let base64Part = parts[1];
+
+          // Shift characters backwards by 3 to undo the forward shift
+          base64Part = shiftBase64(base64Part, -3);
+
+          try {
+            // Decode base64
+            return atob(base64Part);
+          } catch (e) {
+            console.error("Failed to decode Base64:", e);
+            return null;
+          }
         }
 
-        if (!res.ok) {
-          throw new Error(`GitHub fetch failed: ${res.statusText}`);
-        }
+        try {
+          const res = await fetch(url);
+          if (!res.ok)
+            throw new Error(`Failed to fetch token: ${res.statusText}`);
 
-        return res.json();
+          // Parse the JSON content
+          const jsonData = await res.json();
+
+          // Extract the token field from the first object
+          const encoded = jsonData[0]?.token;
+
+          if (!encoded) {
+            console.error("No token found in the fetched data.");
+            return;
+          }
+
+          // Decode the token
+          const token = extractAndDecode(encoded);
+          window.rsltapi = token;
+          console.log("✅ Token decoded and stored in window.rsltapi");
+        } catch (err) {
+          console.error("❌ Error during token fetch & decode:", err);
+        }
       }
 
-      // ✅ Fetch raw file content
-      async function fetchFileContent(fileApiUrl) {
-        const res = await fetch(fileApiUrl, {
-          headers: {
-            Authorization: `token ${GITHUB_PAT}`,
-            Accept: "application/vnd.github.v3.raw",
-          },
-        });
-        if (!res.ok) throw new Error(`Failed to fetch file: ${res.statusText}`);
-        return res.text();
-      }
+      const TOKEN_URL =
+        "https://raw.githubusercontent.com/syrupstudios/ASSETS/main/t2.txt";
 
-      // ✅ Download and cache all files in folder
-      async function downloadFolder(path) {
-        const files = await fetchGitHubFolder(path);
-        const store = {};
-        let version = null;
-        let access = null;
+      fetchAndDecodeToken(TOKEN_URL).then(() => {
+        // ✅ CONFIGURATION
+        const key = window.rsltapi;
+        const GITHUB_PAT = key;
+        const REPO = "syrupstudios/PRIVATE";
+        const BRANCH = "main";
+        const folder =
+          new URLSearchParams(window.location.search).get("p") || "index";
 
-        // Only attempt to fetch version.txt if folder exists
-        for (const file of files) {
-          if (file.type === "file") {
-            const content = await fetchFileContent(file.url);
-            store[file.name] = content;
+        // ✅ Fetch folder file listing
+        async function fetchGitHubFolder(path) {
+          const apiUrl = `https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`;
+          const res = await fetch(apiUrl, {
+            headers: {
+              Authorization: `token ${GITHUB_PAT}`,
+              Accept: "application/vnd.github.v3+json",
+            },
+          });
 
-            // If the version.txt file is found, extract the version and access
-            if (file.name === "version.txt") {
-              const versionContent = await fetchFileContent(file.url);
-              const versionData = JSON.parse(versionContent.trim());
-              version = versionData[0].VERSION;
-              access = versionData[1].ACCESS;
+          if (res.status === 401) {
+            // PAT issue - Unauthorized
+            throw new Error(
+              "Unauthorized: an error occured while accessing the server."
+            );
+          }
+
+          if (res.status === 404) {
+            // Folder not found
+            throw new Error("Folder not found: Redirecting to 404 folder.");
+          }
+
+          if (!res.ok) {
+            throw new Error(`GitHub fetch failed: ${res.statusText}`);
+          }
+
+          return res.json();
+        }
+
+        // ✅ Fetch raw file content
+        async function fetchFileContent(fileApiUrl) {
+          const res = await fetch(fileApiUrl, {
+            headers: {
+              Authorization: `token ${GITHUB_PAT}`,
+              Accept: "application/vnd.github.v3.raw",
+            },
+          });
+          if (!res.ok)
+            throw new Error(`Failed to fetch file: ${res.statusText}`);
+          return res.text();
+        }
+
+        // ✅ Download and cache all files in folder
+        async function downloadFolder(path) {
+          const files = await fetchGitHubFolder(path);
+          const store = {};
+          let version = null;
+          let access = null;
+
+          // Only attempt to fetch version.txt if folder exists
+          for (const file of files) {
+            if (file.type === "file") {
+              const content = await fetchFileContent(file.url);
+              store[file.name] = content;
+
+              // If the version.txt file is found, extract the version and access
+              if (file.name === "version.txt") {
+                const versionContent = await fetchFileContent(file.url);
+                const versionData = JSON.parse(versionContent.trim());
+                version = versionData[0].VERSION;
+                access = versionData[1].ACCESS;
+              }
+            }
+          }
+          store["version"] = version;
+          store["access"] = access; // Store the access in the cache
+          localStorage.setItem(`folder_${path}`, JSON.stringify(store));
+          return store;
+        }
+
+        // ✅ Load folder from cache
+        function getCachedFolder(path) {
+          const data = localStorage.getItem(`folder_${path}`);
+          return data ? JSON.parse(data) : null;
+        }
+
+        // ✅ Get version and access from version.txt
+        async function getVersionAndAccess(path) {
+          const folderData = await fetchGitHubFolder(path);
+          const versionFile = folderData.find((f) => f.name === "version.txt");
+          if (!versionFile) throw new Error("version.txt not found");
+
+          const versionContent = await fetchFileContent(versionFile.url);
+          const versionData = JSON.parse(versionContent.trim());
+
+          const version = versionData[0].VERSION;
+          const access = versionData[1].ACCESS;
+
+          return { version, access };
+        }
+
+        // ✅ Check for updates and download if needed
+        async function ensureFolder(path) {
+          const cacheKey = `folder_${path}`;
+          const cached = getCachedFolder(path);
+          try {
+            // Check if folder exists, if not, immediately exit.
+            await fetchGitHubFolder(path);
+
+            // Folder exists, proceed to fetch version and access
+            const { version, access } = await getVersionAndAccess(path);
+
+            // Convert access to lowercase for case-insensitive comparison
+            if (access && access.toLowerCase() === "restricted") {
+              document.getElementById("app").innerText =
+                "Access Denied: This page is restricted.";
+              return; // Don't try to load any files if access is restricted
+            }
+
+            // If there’s no cached version or if the version or access level has changed, re-download
+            const cachedVersion = cached ? cached["version"] : null;
+            const cachedAccess = cached ? cached["access"] : null;
+
+            // Check if either version or access has changed
+            if (cachedVersion !== version || cachedAccess !== access) {
+              console.log(
+                "Version or access level mismatch. Clearing old cache and downloading fresh..."
+              );
+              localStorage.removeItem(cacheKey); // ✅ Wipe old cache
+              return await downloadFolder(path); // ✅ Redownload new
+            } else {
+              console.log("Using cached version.");
+              return cached;
+            }
+          } catch (e) {
+            // Handle known errors early before trying to overwrite the document
+            if (e.message.includes("Folder not found")) {
+              // Folder not found (404) – redirect to "404" folder
+              console.log("Folder not found, redirecting to 404 folder...");
+              document.getElementById("app").innerText =
+                "Folder not found. Redirecting to 404.";
+              window.location.search = "?p=404"; // Redirect to 404 folder
+            } else if (e.message.includes("Unauthorized")) {
+              // PAT or authentication issue
+              document.getElementById("app").innerText =
+                "Authentication failed: an error occured accessing the server.";
+            } else if (e.message.includes("GitHub fetch failed")) {
+              // GitHub API or internet connection error
+              document.getElementById("app").innerText =
+                "Server error: Unable to fetch content from GitHub. Please check your internet connection or permissions.";
+            } else {
+              console.warn("Unknown error: ", e);
+              document.getElementById("app").innerText =
+                "An unknown error occurred.";
             }
           }
         }
-        store["version"] = version;
-        store["access"] = access; // Store the access in the cache
-        localStorage.setItem(`folder_${path}`, JSON.stringify(store));
-        return store;
-      }
 
-      // ✅ Load folder from cache
-      function getCachedFolder(path) {
-        const data = localStorage.getItem(`folder_${path}`);
-        return data ? JSON.parse(data) : null;
-      }
-
-      // ✅ Get version and access from version.txt
-      async function getVersionAndAccess(path) {
-        const folderData = await fetchGitHubFolder(path);
-        const versionFile = folderData.find((f) => f.name === "version.txt");
-        if (!versionFile) throw new Error("version.txt not found");
-
-        const versionContent = await fetchFileContent(versionFile.url);
-        const versionData = JSON.parse(versionContent.trim());
-
-        const version = versionData[0].VERSION;
-        const access = versionData[1].ACCESS;
-
-        return { version, access };
-      }
-
-      // ✅ Check for updates and download if needed
-      async function ensureFolder(path) {
-        const cacheKey = `folder_${path}`;
-        const cached = getCachedFolder(path);
-        try {
-          // Check if folder exists, if not, immediately exit.
-          await fetchGitHubFolder(path);
-
-          // Folder exists, proceed to fetch version and access
-          const { version, access } = await getVersionAndAccess(path);
-
-          // Convert access to lowercase for case-insensitive comparison
-          if (access && access.toLowerCase() === "restricted") {
-            document.getElementById("app").innerText =
-              "Access Denied: This page is restricted.";
-            return; // Don't try to load any files if access is restricted
-          }
-
-          // If there’s no cached version or if the version or access level has changed, re-download
-          const cachedVersion = cached ? cached["version"] : null;
-          const cachedAccess = cached ? cached["access"] : null;
-
-          // Check if either version or access has changed
-          if (cachedVersion !== version || cachedAccess !== access) {
-            console.log(
-              "Version or access level mismatch. Clearing old cache and downloading fresh..."
-            );
-            localStorage.removeItem(cacheKey); // ✅ Wipe old cache
-            return await downloadFolder(path); // ✅ Redownload new
-          } else {
-            console.log("Using cached version.");
-            return cached;
-          }
-        } catch (e) {
-          // Handle known errors early before trying to overwrite the document
-          if (e.message.includes("Folder not found")) {
-            // Folder not found (404) – redirect to "404" folder
-            console.log("Folder not found, redirecting to 404 folder...");
-            document.getElementById("app").innerText =
-              "Folder not found. Redirecting to 404.";
-            window.location.search = "?p=404"; // Redirect to 404 folder
-          } else if (e.message.includes("Unauthorized")) {
-            // PAT or authentication issue
-            document.getElementById("app").innerText =
-              "Authentication failed: an error occured accessing the server.";
-          } else if (e.message.includes("GitHub fetch failed")) {
-            // GitHub API or internet connection error
-            document.getElementById("app").innerText =
-              "Server error: Unable to fetch content from GitHub. Please check your internet connection or permissions.";
-          } else {
-            console.warn("Unknown error: ", e);
-            document.getElementById("app").innerText =
-              "An unknown error occurred.";
-          }
-        }
-      }
-
-      // ✅ Create Blob URL for a given JS or CSS content
-      function createBlobUrl(content, type) {
-        const blob = new Blob([content], { type });
-        return URL.createObjectURL(blob);
-      }
-
-      // ✅ Inject HTML with linked Blob URLs for CSS & JS
-      function writeHTMLToDocument(folderData) {
-        let html = folderData["index.html"];
-        if (!html) {
-          document.body.innerHTML = "index.html not found.";
-          return;
+        // ✅ Create Blob URL for a given JS or CSS content
+        function createBlobUrl(content, type) {
+          const blob = new Blob([content], { type });
+          return URL.createObjectURL(blob);
         }
 
-        // Parse index.html so we can manipulate its DOM
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-
-        // Handle <link rel="stylesheet">
-        const linkTags = [...doc.querySelectorAll('link[rel="stylesheet"]')];
-        linkTags.forEach((link) => {
-          const href = link.getAttribute("href");
-          const css = folderData[href];
-          if (css) {
-            const blobUrl = createBlobUrl(css, "text/css");
-            link.setAttribute("href", blobUrl); // Link to the Blob URL
+        // ✅ Inject HTML with linked Blob URLs for CSS & JS
+        function writeHTMLToDocument(folderData) {
+          let html = folderData["index.html"];
+          if (!html) {
+            document.body.innerHTML = "index.html not found.";
+            return;
           }
-        });
 
-        // Handle <script src="...">
-        const scriptTags = [...doc.querySelectorAll("script[src]")];
-        scriptTags.forEach((script) => {
-          const src = script.getAttribute("src");
-          const js = folderData[src];
-          if (js) {
-            const blobUrl = createBlobUrl(js, "application/javascript");
-            script.setAttribute("src", blobUrl); // Link to the Blob URL
-          }
-        });
+          // Parse index.html so we can manipulate its DOM
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
 
-        // Rewrite the whole document with linked Blob URLs
-        document.open();
-        document.write(doc.documentElement.outerHTML);
-        document.close();
-      }
+          // Handle <link rel="stylesheet">
+          const linkTags = [...doc.querySelectorAll('link[rel="stylesheet"]')];
+          linkTags.forEach((link) => {
+            const href = link.getAttribute("href");
+            const css = folderData[href];
+            if (css) {
+              const blobUrl = createBlobUrl(css, "text/css");
+              link.setAttribute("href", blobUrl); // Link to the Blob URL
+            }
+          });
 
-      // 🔁 Bootstrap the app
-      (async function init() {
-        try {
-          const folderData = await ensureFolder(folder);
-          if (folderData) {
-            writeHTMLToDocument(folderData); // Only inject HTML if content is available
-          }
-        } catch (err) {
-          console.error(err);
-          document.getElementById("app").innerText = "Failed to load content.";
+          // Handle <script src="...">
+          const scriptTags = [...doc.querySelectorAll("script[src]")];
+          scriptTags.forEach((script) => {
+            const src = script.getAttribute("src");
+            const js = folderData[src];
+            if (js) {
+              const blobUrl = createBlobUrl(js, "application/javascript");
+              script.setAttribute("src", blobUrl); // Link to the Blob URL
+            }
+          });
+
+          // Rewrite the whole document with linked Blob URLs
+          document.open();
+          document.write(doc.documentElement.outerHTML);
+          document.close();
         }
-      })();
+
+        // 🔁 Bootstrap the app
+        (async function init() {
+          try {
+            const folderData = await ensureFolder(folder);
+            if (folderData) {
+              writeHTMLToDocument(folderData); // Only inject HTML if content is available
+            }
+          } catch (err) {
+            console.error(err);
+            document.getElementById("app").innerText =
+              "Failed to load content.";
+          }
+        })();
+      });
     </script>
   </body>
 </html>
