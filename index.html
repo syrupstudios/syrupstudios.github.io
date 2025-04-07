@@ -394,6 +394,16 @@
           return URL.createObjectURL(blob);
         }
 
+        function updateFavicon(href) {
+          const oldIcons = document.querySelectorAll('link[rel~="icon"]');
+          oldIcons.forEach((icon) => icon.remove());
+
+          const newIcon = document.createElement("link");
+          newIcon.rel = "icon";
+          newIcon.href = href;
+          document.head.appendChild(newIcon);
+        }
+
         // ✅ Inject HTML with linked Blob URLs for CSS & JS
         function writeHTMLToDocument(folderData) {
           let html = folderData["index.html"];
@@ -432,6 +442,15 @@
           document.open();
           document.write(doc.documentElement.outerHTML);
           document.close();
+
+          // ⏳ Wait a tiny bit for DOM to be parsed, then re-inject the favicon
+          setTimeout(() => {
+            const iconTags = [...doc.querySelectorAll('link[rel~="icon"]')];
+            if (iconTags.length > 0) {
+              const href = iconTags[0].getAttribute("href");
+              updateFavicon(href); // Force favicon reload
+            }
+          }, 50);
         }
 
         // 🔁 Bootstrap the app
